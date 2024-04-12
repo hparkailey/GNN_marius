@@ -10,6 +10,7 @@ import math
 import time
 import os 
 import json
+import pymetis
 
 
 class SubgraphSampler:
@@ -19,6 +20,8 @@ class SubgraphSampler:
         self.sampling_depth = config["sampling_depth"]
         self.metrics = MetricTracker()
         self.initialize()
+        self.SAVE_DIR = "datasets"
+        self.EDGES_PATH = "edges/train_edges.bin"
     
     def initialize(self):
         # Create the graph
@@ -50,12 +53,35 @@ class SubgraphSampler:
         levels = [-1 for _ in range(sampling_depth)]
         self.sampler = LayeredNeighborSampler(self.current_graph, levels, in_memory_nodes)
 
+    #MODIFIED
     def perform_sampling_for_nodes(self, batch):        
         # Get all nodes
+        self.partition_num = self.data_loader.total_nodes/self.nodes_per_page
         batch = batch.to(self.device)
         nodes_to_load = 1.0 * self.sampler.getNeighborsNodes(batch)
         nodes_pages = torch.floor(nodes_to_load/self.nodes_per_page)
         unique_pages = torch.unique(nodes_pages)
+
+        path_for_partitions = os.path.join(self.SAVE_DIR,self.data_loader.name,"partitions")
+      
+        n_cuts, membership = pymetis.part_graph(self.partition_num, adjacency=self.data_loader.adj_list)
+        print("Partition num :", self.partition_num)
+        #print("MEMBERSHIP: ",membership)
+
+        if not os.path.exists(path_for_partitions):
+            os.makedirs(path_for_partitions)
+
+        membership_fname = "membership_dict.json"
+        if not os.path.exists(os.path.join(path_for_partitions,str(self.partition_num),membership_fname)):
+            mem_dict = dict(zip(range(len(self.data_loader.adj_list)), membership))
+            with open(os.path.join(path_for_partitions,str(self.partition_num),membership_fname),"w") as j_file:
+                json.dump(mem_dict, j_file)
+                print("Membership written sucesssfully at ", path_for_partitions)
+        else:
+            print("Membership file already exists at: ", path_for_partitions)
+        
+        print("Number of METIS cuts: ", n_cuts)
+
         return True, unique_pages.numel()/batch.numel()
 
     # ##### NEW: TODO

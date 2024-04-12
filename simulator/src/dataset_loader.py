@@ -11,6 +11,7 @@ import threading
 from collections import defaultdict
 import pymetis
 import json 
+from itertools import groupby
 
 from .metrics import *
 
@@ -47,29 +48,23 @@ class DatasetLoader:
         self.edge_list = torch.tensor(edges_arr, dtype = torch.int64)
         self.total_nodes = torch.max(self.edge_list).item() + 1
         # divide total_nodes/SunGraphSampler.nodes_per_page to get the total number of partitions in running METIS 
+        self.adj_list = self.edge_list_to_adj_list(self.edge_list)
 
-        print("EDGE LIST: ", self.edge_list)
-        path_for_partitions = os.path.join(self.SAVE_DIR,self.name,"partitions")
-        n_cuts, membership = pymetis.part_graph(2, adjacency=self.edge_list)
-        print(membership)
-        if not os.path.exists(path_for_partitions):
-            os.makedirs(path_for_partitions)
+        # print("EDGE LIST: ", self.edge_list)
+        # print("ADJ LIST: ", self.adj_list)
 
-        membership_fname = "membership_dict.json"
-        if not os.path.exists(os.path.join(path_for_partitions,membership_fname)):
-            mem_dict = dict(zip(range(len(self.edge_list)), membership))
-            with open(os.path.join(path_for_partitions,membership_fname),"w") as j_file:
-                json.dump(mem_dict, j_file)
-                print("Membership written sucesssfully at ", path_for_partitions)
-        else:
-            print("Membership file already exists at: ", path_for_partitions)
-        
-        print("Number of METIS cuts: ", n_cuts)
+    #Converts edge list preprocessed by MARIUS into adjacency list 
+    def edge_list_to_adj_list(self, edge_list_tensor):
+        edge_list = np.array(edge_list_tensor)
+        duplicated_edge_list = np.vstack([edge_list, edge_list[:, ::-1]])
+        adj_dict={}
+        for k,g in groupby(np.array(duplicated_edge_list), lambda e: e[0]):
+            if k not in adj_dict:
+                adj_dict[k]=[]
+            adj_dict[k].extend([pair[1] for pair in g])
 
-    # def edge_list_to_adj_list(edge_list):
-    #     adj_list = []
-    #     for edge_elem in edge_list:
-    #         if edge_elm[0] in 
+        adj_list = [nodes for nodes in adj_dict.values()]
+        return adj_list
     
     
     def get_num_nodes(self):
