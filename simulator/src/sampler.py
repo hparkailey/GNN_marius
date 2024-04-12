@@ -71,20 +71,20 @@ class SubgraphSampler:
         if not os.path.exists(path_for_partitions):
             os.makedirs(path_for_partitions)
 
-        membership_fname = "membership_dict.json"
-        if not os.path.exists(os.path.join(path_for_partitions,str(self.partition_num),membership_fname)):
+        membership_fname = os.path.join(path_for_partitions,"membership_dict.json")
+        if not os.path.exists(membership_fname):
             mem_dict = dict(zip(range(len(self.data_loader.adj_list)), membership))
-            with open(os.path.join(path_for_partitions,str(self.partition_num),membership_fname),"w") as j_file:
+            with open(membership_fname,"w") as j_file:
                 json.dump(mem_dict, j_file)
-                print("Membership written sucesssfully at ", path_for_partitions)
+                print("Membership written sucesssfully at ", membership_fname)
         else:
-            print("Membership file already exists at: ", path_for_partitions)
+            print("Membership file already exists at: ", membership_fname)
         
         print("Number of METIS cuts: ", n_cuts)
 
         return True, unique_pages.numel()/batch.numel()
 
-    # ##### NEW: TODO
+    # ##### NEW: 
     # def perform_sampling_for_nodes_and_count_pages(self, batch):
     #     # Get all nodes
     #     batch = batch.to(self.device)
