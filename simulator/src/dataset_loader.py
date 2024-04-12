@@ -48,8 +48,9 @@ class DatasetLoader:
         self.total_nodes = torch.max(self.edge_list).item() + 1
         # divide total_nodes/SunGraphSampler.nodes_per_page to get the total number of partitions in running METIS 
 
+        print("EDGE LIST: ", self.edge_list)
         path_for_partitions = os.path.join(self.SAVE_DIR,self.name,"partitions")
-        n_cuts, membership = pymetis.part_graph(10, adjacency=self.edge_list)
+        n_cuts, membership = pymetis.part_graph(2, adjacency=self.edge_list)
         print(membership)
         if not os.path.exists(path_for_partitions):
             os.makedirs(path_for_partitions)
@@ -64,6 +65,11 @@ class DatasetLoader:
             print("Membership file already exists at: ", path_for_partitions)
         
         print("Number of METIS cuts: ", n_cuts)
+
+    # def edge_list_to_adj_list(edge_list):
+    #     adj_list = []
+    #     for edge_elem in edge_list:
+    #         if edge_elm[0] in 
     
     
     def get_num_nodes(self):
