@@ -50,6 +50,7 @@ class DatasetLoader:
 
         path_for_partitions = os.path.join(self.SAVE_DIR,self.name,"partitions")
         n_cuts, membership = pymetis.part_graph(10, adjacency=self.edge_list)
+        print(membership)
         if not os.path.exists(path_for_partitions):
             os.makedirs(path_for_partitions)
 
