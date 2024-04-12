@@ -7,5 +7,6 @@
         "feature_size" : "float32"
     }, 
     "batch_size" : 10,
-    "sampling_depth" : 1
+    "sampling_depth" : 3 
 }
+

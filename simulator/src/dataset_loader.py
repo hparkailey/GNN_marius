@@ -9,6 +9,8 @@ import time
 import traceback
 import threading
 from collections import defaultdict
+import pymetis
+import json 
 
 from .metrics import *
 
@@ -44,6 +46,24 @@ class DatasetLoader:
         edges_arr = edges_flaten_arr.reshape((-1, 2))
         self.edge_list = torch.tensor(edges_arr, dtype = torch.int64)
         self.total_nodes = torch.max(self.edge_list).item() + 1
+        # divide total_nodes/SunGraphSampler.nodes_per_page to get the total number of partitions in running METIS 
+
+        path_for_partitions = os.path.join(self.SAVE_DIR,self.name,"partitions")
+        n_cuts, membership = pymetis.part_graph(10, adjacency=self.edge_list)
+        if not os.path.exists(path_for_partitions):
+            os.makedirs(path_for_partitions)
+
+        membership_fname = "membership_dict.json"
+        if not os.path.exists(os.path.join(path_for_partitions,membership_fname)):
+            mem_dict = dict(zip(range(len(self.edge_list)), membership))
+            with open(os.path.join(path_for_partitions,membership_fname),"w") as j_file:
+                json.dump(mem_dict, j_file)
+                print("Membership written sucesssfully at ", path_for_partitions)
+        else:
+            print("Membership file already exists at: ", path_for_partitions)
+        
+        print("Number of METIS cuts: ", n_cuts)
+    
     
     def get_num_nodes(self):
         return self.total_nodes

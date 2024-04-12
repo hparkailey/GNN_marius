@@ -8,6 +8,9 @@ import numpy as np
 import humanfriendly
 import math
 import time
+import os 
+import json
+
 
 class SubgraphSampler:
     def __init__(self, data_loader, config):
@@ -54,6 +57,25 @@ class SubgraphSampler:
         nodes_pages = torch.floor(nodes_to_load/self.nodes_per_page)
         unique_pages = torch.unique(nodes_pages)
         return True, unique_pages.numel()/batch.numel()
+
+    # ##### NEW: TODO
+    # def perform_sampling_for_nodes_and_count_pages(self, batch):
+    #     # Get all nodes
+    #     batch = batch.to(self.device)
+    #     neighborIDs = self.sampler.getNeighborsNodes(batch) #returns a list of neighbor IDs 
+        
+    #     #check if memship file exists
+    #     path_for_membership_json = os.path.join(self.data_loader.SAVE_DIR, self.data_loader.name,"partitions","membership_dict.json")
+    #     if not os.path.exists(path_for_membership_json):
+    #         print("ERROR! Membership dict does not exist at: ", os.getcwd())
+    #     else:
+    #         with open(path_for_membership_json,"r") as j_file:
+    #             memship_dict = json.load(j_file)
+
+    #     #count the number of unique blocks to read in sampling 
+    #     neighborMemberships = [memship_dict[str(node_id.item())] for node_id in neighborIDs]
+    #     return set(neighborMemberships)
+        
 
     def get_values_to_log(self):
         total_pages = int(math.ceil(self.data_loader.get_num_nodes() / (1.0 * self.nodes_per_page)))

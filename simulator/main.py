@@ -16,6 +16,18 @@ def read_config_file(config_file):
     with open(config_file, "r") as reader:
         return json.load(reader)
 
+
+
+ ##### NEW: TODO
+def perform_sampling_for_nodes_and_count_pages(subGraphSampler, batch, memship_dict):
+    # Get all nodes
+    batch = batch.to(subGraphSampler.device)
+    neighborIDs = subGraphSampler.sampler.getNeighborsNodes(batch) #returns a list of neighbor IDs 
+    #count the number of unique blocks to read in sampling 
+    neighborMemberships = [memship_dict[str(node_id.item())] for node_id in neighborIDs]
+    return set(neighborMemberships)
+    
+
 def run_for_worker(arguments):
     # Create the loaders
     config = read_config_file(arguments.config_file)
@@ -41,6 +53,14 @@ def run_for_worker(arguments):
     worker_chunk = worker_chunk[torch.randperm(worker_chunk.size(0))]
     sample_nodes = worker_chunk.reshape((-1, batch_size))
 
+    #check if memship file exists
+    path_for_membership_json = os.path.join(sampler.data_loader.SAVE_DIR, sampler.data_loader.name,"partitions","membership_dict.json")
+    if not os.path.exists(path_for_membership_json):
+        print("ERROR! Membership dict does not exist at: ", os.getcwd())
+    else:
+        with open(path_for_membership_json,"r") as j_file:
+            memship_dict = json.load(j_file)
+
     # Perform the sampling
     total_batches = sample_nodes.shape[0]
     log_rate = int(total_batches/arguments.log_rate)
@@ -48,15 +68,19 @@ def run_for_worker(arguments):
     pages_loaded = []
     pages_time_taken = []
     batch_results = []
+    pages_to_load_list = []
+
     for batch_idx, batch in enumerate(sample_nodes):
         # Process the current batch
         try:
             start_time = time.time()
             sucess, average_pages_loaded = sampler.perform_sampling_for_nodes(batch)
+            pages_to_load = perform_sampling_for_nodes_and_count_pages(sampler, batch, memship_dict) ## 
             if sucess and average_pages_loaded >= 0:
                 avg_tensor = torch.tensor([average_pages_loaded])
                 batch_results.append(torch.cat((avg_tensor, batch), 0))
                 pages_loaded.append(average_pages_loaded)
+                pages_to_load_list.append(pages_to_load)
 
             pages_time_taken.append(time.time() - start_time)
         except:
@@ -91,7 +115,9 @@ def run_for_worker(arguments):
         "sampling_depth" : config["sampling_depth"],
         "dataset_name" : config["dataset_name"],
         "all_batches" : all_batches,
-        "metrics" : metrics
+        "metrics" : metrics,
+        "num_pages_to_load_len": len(set(pages_to_load)),
+        "pages_to_load_contents": set(pages_to_load)
     }
 
     return resulting_values
@@ -121,6 +147,7 @@ def main():
     dataset_name, sampling_depth = process_result["dataset_name"], process_result["sampling_depth"]
     pages_loaded = np.array(process_result["pages_loaded"])
     all_batches = process_result["all_batches"]
+    num_pages_to_load_len = process_result["num_pages_to_load_len"]
 
     # Save the histogram
     os.makedirs(os.path.dirname(arguments.save_path), exist_ok=True)
@@ -132,8 +159,12 @@ def main():
         "dataset_name": dataset_name,
         "values_to_log": vals_to_log,
         "metrics" : metrics,
-        "all_batches" : all_batches
+        "all_batches" : all_batches,
+        "num_pages_to_load_len":num_pages_to_load_len
     }
+
+    print("Num pages to load length: ", num_pages_to_load_len)
+    print("Pages to load: ", process_result["pages_to_load_contents"])
 
     visualize_results(visualize_arguments)
 
