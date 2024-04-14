@@ -54,16 +54,19 @@ def run_for_worker(arguments):
     sample_nodes = worker_chunk.reshape((-1, batch_size))
 
     #check if memship file exists
+    #if not found: run run_metis.py
     path_for_membership_json = os.path.join(sampler.data_loader.SAVE_DIR, sampler.data_loader.name,"partitions","membership_dict.json")
-    if not os.path.exists(path_for_membership_json):
-        print("ERROR! Membership dict does not exist at: ", os.path.join(os.getcwd(), path_for_membership_json))
-    else:
+    try:
         with open(path_for_membership_json,"r") as j_file:
             memship_dict = json.load(j_file)
+    except FileNotFoundError:
+        print(f"{path_for_membership_json} not found.")
+
 
     # Perform the sampling
     total_batches = sample_nodes.shape[0]
     log_rate = int(total_batches/arguments.log_rate)
+    #print("DEBUGGING (log rate, total_batches) ", log_rate, total_batches )
     print("Total of", total_batches, "batches with log rate of", log_rate)
     pages_loaded = []
     pages_time_taken = []
@@ -75,7 +78,7 @@ def run_for_worker(arguments):
         try:
             start_time = time.time()
             sucess, average_pages_loaded = sampler.perform_sampling_for_nodes(batch)
-            pages_to_load = perform_sampling_for_nodes_and_count_pages(sampler, batch, memship_dict) ## 
+            pages_to_load = perform_sampling_for_nodes_and_count_pages(sampler, batch, memship_dict) ##TODO
             if sucess and average_pages_loaded >= 0:
                 avg_tensor = torch.tensor([average_pages_loaded])
                 batch_results.append(torch.cat((avg_tensor, batch), 0))
@@ -85,6 +88,7 @@ def run_for_worker(arguments):
             pages_time_taken.append(time.time() - start_time)
         except:
             print("Batch", batch_idx, "failed due to error", traceback.format_exc())
+            return ##TODO
 
         # Log the value
         if batch_idx > 0 and batch_idx % log_rate == 0:
@@ -116,8 +120,8 @@ def run_for_worker(arguments):
         "dataset_name" : config["dataset_name"],
         "all_batches" : all_batches,
         "metrics" : metrics,
-        "num_pages_to_load_len": len(set(pages_to_load)),
-        "pages_to_load_contents": set(pages_to_load)
+        "num_pages_to_load_len": len(set(pages_to_load)), ####TODO
+        "pages_to_load_contents": set(pages_to_load) ###TODO
     }
 
     return resulting_values
@@ -128,6 +132,7 @@ def read_arguments():
     parser.add_argument("--save_path", required=True, type=str, help="The path to save the resulting image to")
     parser.add_argument("--graph_title", required=True, type=str, help="The title of the saved graph")
     parser.add_argument("--log_rate", type=int, default = 20, help="Log rate of the nodes processed")
+    parser.add_argument("--print_pages",type=bool,default=False,help="Whether to print partioned pages read in sampling")
     return parser.parse_args()
 
 def main():
@@ -147,7 +152,7 @@ def main():
     dataset_name, sampling_depth = process_result["dataset_name"], process_result["sampling_depth"]
     pages_loaded = np.array(process_result["pages_loaded"])
     all_batches = process_result["all_batches"]
-    num_pages_to_load_len = process_result["num_pages_to_load_len"]
+    num_pages_to_load_len = process_result["num_pages_to_load_len"] ##TODO
 
     # Save the histogram
     os.makedirs(os.path.dirname(arguments.save_path), exist_ok=True)
@@ -163,8 +168,9 @@ def main():
         "num_pages_to_load_len":num_pages_to_load_len
     }
 
-    print("Num pages to load length: ", num_pages_to_load_len)
-    print("Pages to load: ", process_result["pages_to_load_contents"])
+    print("Number pages read after partitioning with METIS: ", num_pages_to_load_len)
+    if arguments.print_pages:
+        print("Pages to load: ", process_result["pages_to_load_contents"])
 
     visualize_results(visualize_arguments)
 
