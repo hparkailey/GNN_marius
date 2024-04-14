@@ -56,7 +56,7 @@ def run_for_worker(arguments):
     #check if memship file exists
     path_for_membership_json = os.path.join(sampler.data_loader.SAVE_DIR, sampler.data_loader.name,"partitions","membership_dict.json")
     if not os.path.exists(path_for_membership_json):
-        print("ERROR! Membership dict does not exist at: ", os.getcwd())
+        print("ERROR! Membership dict does not exist at: ", os.path.join(os.getcwd(), path_for_membership_json))
     else:
         with open(path_for_membership_json,"r") as j_file:
             memship_dict = json.load(j_file)
