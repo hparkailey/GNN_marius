@@ -45,24 +45,25 @@ def main():
     edges_flaten_arr = np.frombuffer(edges_bytes, dtype=np.int32)
     edge_list = np.array(edges_flaten_arr.reshape((-1, 2)))
 
-    #convert edge list into adj list 
-    duplicated_edge_list = np.vstack([edge_list, edge_list[:, ::-1]])
-    adj_dict={}
-    for k,g in groupby(np.array(duplicated_edge_list), lambda e: e[0]):
-        if k not in adj_dict:
-            adj_dict[k]=[]
-        adj_dict[k].extend([pair[1] for pair in g])
+    # #convert edge list into adj list 
+    # duplicated_edge_list = np.vstack([edge_list, edge_list[:, ::-1]])
+    # adj_dict={}
+    # for k,g in groupby(np.array(duplicated_edge_list), lambda e: e[0]):
+    #     if k not in adj_dict:
+    #         adj_dict[k]=[]
+    #     adj_dict[k].extend([pair[1] for pair in g])
 
-    adj_list = [nodes for nodes in adj_dict.values()]
-    total_nodes_num = len(adj_list)
-    nodes_per_page = get_nodes_per_page(config)
-    if part_num<0:
-        part_num= max(int(total_nodes_num/nodes_per_page),2)
-        print("Partitioning with: ", part_num)
+    # adj_list = [np.array(nodes) for nodes in adj_dict.values()]
+    # total_nodes_num = len(adj_list)
+    # nodes_per_page = get_nodes_per_page(config)
+    # if part_num<0:
+    #     part_num= max(int(total_nodes_num/nodes_per_page),2)
+    #     print("Partitioning with: ", part_num)
 
-
+    
+    
     #run metis 
-    n_cuts, membership = pymetis.part_graph(part_num, adjacency=adj_list)
+    n_cuts, membership = pymetis.part_graph(part_num, adjacency=edge_list) ##TODO: adj_list
     print("METIS output N_cuts :",n_cuts)
 
     #write output 

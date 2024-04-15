@@ -11,21 +11,29 @@ def visualize_results(visualize_args, num_bins=60, write_location=(0.65, 0.5)):
     page_mean = round(np.mean(pages_loaded), 2)
     page_std = round(np.std(pages_loaded), 2)
     print("Got pages loaded of mean", page_mean, "and std_dev of", page_std)
+    print("DEBUG printing pages_loaded": pages_loaded)
+
+    ## num pages read after partitioning 
+    pages_len = visualize_args["num_pages_to_load"]
+    pages_num = visualize_args["pages_to_load_ids"]
+    print("After partitioning, loaded pages of ", pages_len)
 
     # Plot the ecdf
-    ecdf = sm.distributions.ECDF(pages_loaded)    
+    ecdf = sm.distributions.ECDF(list(pages_num)) #TODO: changed from pages_loaded    
     num_samples = int((np.max(pages_loaded) - np.min(pages_loaded))/1.25)
     ecdf_x = np.linspace(np.min(pages_loaded), np.max(pages_loaded), num = num_samples)
     ecdf_y = ecdf(ecdf_x)
     plt.step(ecdf_x, ecdf_y, label="ECDF")
 
     # Plot the hisotgram
-    plt.hist(pages_loaded, bins=num_bins, histtype="step", density=True, cumulative=True, label="Cumulative histogram")
+    plt.hist(pages_num, bins=num_bins, histtype="step", density=True, cumulative=True, label="Cumulative histogram")
     plt.xlabel("Number of pages loaded for node inference")
     plt.ylabel("Percentage of nodes")
     title = visualize_args["graph_title"] + " for dataset " + visualize_args["dataset_name"] + " (Sampling depth = " + str(visualize_args["depth"]) + ")"
     plt.title(title, fontsize = 10)
     plt.legend()
+
+
 
     # Write some resulting text
     vals_to_log = {

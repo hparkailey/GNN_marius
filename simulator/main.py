@@ -153,7 +153,8 @@ def main():
     pages_loaded = np.array(process_result["pages_loaded"])
     all_batches = process_result["all_batches"]
     num_pages_to_load_len = process_result["num_pages_to_load_len"] ##TODO
-
+    pages_to_load_contents = process_result["pages_to_load_contents"] #TODO
+    print("PAGES contents: ",pages_to_load_contents )
     # Save the histogram
     os.makedirs(os.path.dirname(arguments.save_path), exist_ok=True)
     visualize_arguments = {
@@ -165,7 +166,8 @@ def main():
         "values_to_log": vals_to_log,
         "metrics" : metrics,
         "all_batches" : all_batches,
-        "num_pages_to_load_len":num_pages_to_load_len
+        "num_pages_to_load":num_pages_to_load_len,
+        "pages_to_load_ids":pages_to_load_contents
     }
 
     print("Number pages read after partitioning with METIS: ", num_pages_to_load_len)
